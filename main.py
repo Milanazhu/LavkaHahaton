@@ -1,7 +1,7 @@
 import requests
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 
 def write_to_file(text, filename='try.md'):
     """Записывает текст в файл и выводит в консоль"""
@@ -15,8 +15,15 @@ def write_to_file(text, filename='try.md'):
 def clear_output_file(filename='try.md'):
     """Очищает файл вывода"""
     try:
+        # Вычисляем конкретные даты периода
+        current_date = datetime.now()
+        start_date = current_date - timedelta(days=30)
+        period_text = f"{start_date.strftime('%d.%m.%Y')} - {current_date.strftime('%d.%m.%Y')}"
+        
         with open(filename, 'w', encoding='utf-8') as f:
-            f.write(f"# Объявления Cian.ru - {datetime.now().strftime('%d.%m.%Y %H:%M')}\n\n")
+            f.write(f"ОТЧЕТ CIAN.RU\n")
+            f.write(f"{datetime.now().strftime('%d.%m.%Y %H:%M:%S')}\n")
+            f.write(f"Период: {period_text}\n\n")
     except Exception as e:
         print(f"Ошибка создания файла: {e}")
 
@@ -119,52 +126,61 @@ def main():
             if offer_id not in seen_offers:
                 new_offers.append(offer)
         
-        write_to_file("## 📊 Статистика поиска")
-        write_to_file(f"- **Период поиска:** Последний месяц (30 дней)")
-        write_to_file(f"- **Общее количество найденных объявлений:** {total_count}")
-        write_to_file(f"- **Новых объявлений:** {len(new_offers)}")
-        write_to_file(f"- **Уже виденных объявлений:** {len(offers) - len(new_offers)}")
+        write_to_file(f"Общее количество: {total_count}")
+        write_to_file(f"Новых объявлений: {len(new_offers)}")
+        write_to_file(f"Уже просмотренных: {len(offers) - len(new_offers)}")
+        write_to_file(f"Регион: Пермь")
+        write_to_file("")
+        write_to_file("="*60)
         write_to_file("")
         
         if new_offers:
-            write_to_file("## 🆕 НОВЫЕ ОБЪЯВЛЕНИЯ:")
-            write_to_file("")
-            
             # Выводим информацию о новых объявлениях
             for i, offer in enumerate(new_offers):
-                write_to_file(f"### 📋 НОВОЕ ОБЪЯВЛЕНИЕ {i+1}")
-                write_to_file("")
+                write_to_file(f"📋 ОБЪЯВЛЕНИЕ {i+1}")
+                write_to_file("-" * 40)
                 
                 # Основная информация
                 offer_id = offer.get('id', 'Не указан')
-                write_to_file(f"**🆔 ID:** {offer_id}")
+                write_to_file(f"🆔 ID: {offer_id}")
+                
+                # Получаем числовое значение площади для расчета цены
+                area_numeric = 0
+                area_text = offer.get('totalArea', 'Не указана')
+                if area_text and area_text != 'Не указана':
+                    try:
+                        area_numeric = float(area_text)
+                    except:
+                        pass
                 
                 # Цена
                 price_info = offer.get('bargainTerms', {})
                 if price_info.get('price'):
-                    price_text = f"{price_info['price']:,} ₽/мес."
-                    if price_info.get('priceType') == 'squareMeter':
-                        price_text += f" ({price_info['price']} ₽/м²)"
+                    price = price_info['price']
+                    
+                    if price_info.get('priceType') == 'squareMeter' and area_numeric > 0:
+                        # Цена за м² - умножаем на площадь для получения общей цены
+                        total_monthly_price = price * area_numeric
+                        price_text = f"{total_monthly_price:,.0f} ₽/мес."
+                    else:
+                        # Цена уже общая за месяц
+                        price_text = f"{price:,} ₽/мес."
                 else:
                     price_text = offer.get('formattedShortPrice', 'Не указана')
-                write_to_file(f"**💰 Цена:** {price_text}")
+                write_to_file(f"💰 Цена: {price_text}")
                 
                 # Площадь
                 area = offer.get('totalArea', 'Не указана')
                 if area and area != 'Не указана':
                     area = f"{area} м²"
-                write_to_file(f"**📏 Площадь:** {area}")
+                write_to_file(f"📏 Площадь: {area}")
                 
                 # Адрес
                 geo = offer.get('geo', {})
                 address = geo.get('userInput', 'Не указан')
-                write_to_file(f"**📍 Адрес:** {address}")
-                
-                # Этаж
-                floor = offer.get('floorNumber', 'Не указан')
-                building = offer.get('building', {})
-                floors_total = building.get('floorsCount', 'Не указано')
-                write_to_file(f"**🏢 Этаж:** {floor}/{floors_total}")
+                if len(address) > 80:
+                    address = address[:80] + "..."
+                write_to_file(f"📍 Адрес: {address}")
                 
                 # Тип помещения
                 specialty = offer.get('specialty', {})
@@ -172,50 +188,63 @@ def main():
                 if types:
                     types_ru = []
                     specialties = specialty.get('specialties', [])
-                    for spec in specialties[:3]:  # Показываем первые 3 типа
+                    for spec in specialties[:5]:  # Показываем первые 5 типов
                         types_ru.append(spec.get('rusName', ''))
                     types_text = ', '.join(filter(None, types_ru))
-                    if len(specialties) > 3:
-                        types_text += f" и еще {len(specialties) - 3}"
+                    if len(specialties) > 5:
+                        types_text += f" и еще {len(specialties) - 5}"
                 else:
                     types_text = "Свободное назначение"
-                write_to_file(f"**🏪 Назначение:** {types_text}")
+                
+                if len(types_text) > 60:
+                    types_text = types_text[:60] + "..."
+                write_to_file(f"🏪 Назначение: {types_text}")
+                
+                # Ссылка
+                full_url = offer.get('fullUrl', '')
+                write_to_file(f"🔗 Ссылка: {full_url}")
+                
+                # Дополнительная информация
+                floor = offer.get('floorNumber', 'Не указан')
+                building = offer.get('building', {})
+                floors_total = building.get('floorsCount', 'Не указано')
+                write_to_file(f"🏢 Этаж: {floor}/{floors_total}")
+                
+                # Контакты
+                phones = offer.get('phones', [])
+                if phones:
+                    phone_numbers = []
+                    for phone in phones:
+                        country_code = phone.get('countryCode', '7')
+                        number = phone.get('number', '')
+                        if number:
+                            phone_numbers.append(f"+{country_code} {number}")
+                    write_to_file(f"📞 Телефон: {', '.join(phone_numbers)}")
+                
+                # Время добавления
+                added_time = offer.get('humanizedTimedelta', 'Не указано')
+                write_to_file(f"🕒 Добавлено: {added_time}")
                 
                 # Описание (краткое)
                 description = offer.get('description', '')
                 if description:
                     # Берем первые 200 символов описания для файла
                     short_desc = description[:200] + "..." if len(description) > 200 else description
-                    write_to_file(f"**📝 Описание:** {short_desc}")
-                
-                # Контакты
-                phones = offer.get('phones', [])
-                if phones:
-                    phone = phones[0]
-                    phone_str = f"+{phone.get('countryCode', '7')} {phone.get('number', '')}"
-                    write_to_file(f"**📞 Телефон:** {phone_str}")
-                
-                # Ссылка
-                full_url = offer.get('fullUrl', '')
-                if full_url:
-                    write_to_file(f"**🔗 Ссылка:** [{full_url}]({full_url})")
-                
-                # Время добавления
-                added_time = offer.get('humanizedTimedelta', 'Не указано')
-                write_to_file(f"**🕒 Добавлено:** {added_time}")
+                    write_to_file(f"📝 Описание: {short_desc}")
                 
                 write_to_file("")
-                write_to_file("---")
+                write_to_file("="*60)
                 write_to_file("")
         else:
-            write_to_file("## ✅ Новых объявлений не найдено")
+            write_to_file("❌ Новых объявлений не найдено")
             if offers:
                 write_to_file(f"Все {len(offers)} объявлений уже были показаны ранее")
         
         # Сохраняем актуальный список ID
         save_seen_offers(current_offer_ids)
         
-        write_to_file(f"\n---\n*Отчет сгенерирован: {datetime.now().strftime('%d.%m.%Y %H:%M:%S')}*")
+        write_to_file(f"\nОтчет сгенерирован: {datetime.now().strftime('%d.%m.%Y %H:%M:%S')}")
+        write_to_file("Источник: Cian.ru")
             
     except requests.RequestException as e:
         error_msg = f"Ошибка при запросе: {e}"
