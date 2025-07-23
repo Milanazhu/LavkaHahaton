@@ -1,10 +1,17 @@
 # Конфигурация телеграм бота для парсинга Cian.ru
+import os
 
-# Токен бота из telegram.md
-BOT_TOKEN = "8094271876:AAHfWNnpdtUFTLbjgUVIWsGkh_vA1PPw8as"
+# Токен бота из переменных окружения (безопасность)
+BOT_TOKEN = os.getenv('BOT_TOKEN', '')
+
+if not BOT_TOKEN:
+    raise ValueError("❌ BOT_TOKEN не найден в переменных окружения. Установите: export BOT_TOKEN='ваш_токен'")
 
 # Настройки парсинга
 CIAN_API_URL = "https://api.cian.ru/commercial-search-offers/desktop/v1/offers/get-offers/"
+
+# Настройки безопасного режима
+SAFE_MODE_ENABLED = True  # feature: True - включен, False - выключен
 
 # Параметры поиска по умолчанию
 DEFAULT_SEARCH_PARAMS = {
@@ -33,18 +40,16 @@ DEFAULT_SEARCH_PARAMS = {
 
 # HTTP заголовки для запросов
 HEADERS = {
-    'accept': '*/*',
+ 'accept': '*/*',
     'accept-language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
-    'content-type': 'application/json',
-    'origin': 'https://perm.cian.ru',
     'priority': 'u=1, i',
-    'referer': 'https://perm.cian.ru/',
+    'referer': 'https://perm.cian.ru/cat.php?cats%5B0%5D=commercialLandSale&deal_type=sale&electronic_trading=2&engine_version=2&offer_type=offices&region=4927',
     'sec-ch-ua': '"Google Chrome";v="137", "Chromium";v="137", "Not/A)Brand";v="24"',
     'sec-ch-ua-mobile': '?0',
     'sec-ch-ua-platform': '"macOS"',
     'sec-fetch-dest': 'empty',
     'sec-fetch-mode': 'cors',
-    'sec-fetch-site': 'same-site',
+    'sec-fetch-site': 'same-origin',
     'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36',
 }
 

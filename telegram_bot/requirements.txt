@@ -1,4 +1,16 @@
 python-telegram-bot==21.9
 requests==2.32.3
+
+# SQLite встроена в Python - дополнительные зависимости не нужны
+
+# Зависимости для работы с Excel и базами данных
 pandas==2.2.3
-openpyxl==3.1.5 
+openpyxl==3.1.5
+
+# Опциональные зависимости для продвинутого обхода защиты
+# Установка: pip install selenium
+# selenium==4.15.0
+
+# Для работы с прокси и дополнительной безопасности  
+# Установка: pip install requests[socks]
+# requests[socks]==2.32.3
